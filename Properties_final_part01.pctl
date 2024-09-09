@@ -1,0 +1,26 @@
+// P1 considering non zero failure probability
+A [ G F (CU=Safe_state|CU=Unsafe_state) ]
+
+// whenever a relay operates "R1_operation" is true, it is certain (probability = 1) that "Lock1" is also true
+filter(forall, "R1_operation"=>P>=1 [ Lock1=true ])
+
+filter(forall, "R2_operation"=>P>=1 [ Lock2=true ])
+
+filter(forall, "R3_operation"=>P>=1 [ Lock3=true ])
+
+filter(forall, "Fault_clr_R1"=>P>=1 [ R3!=1 ])
+
+filter(forall, "Fault_clr_R3"=>P>=1 [ R2!=1 ])
+
+filter(forall, "Fault_clr_R2"=>P>=1 [ R1!=1 ])
+
+// Backup relay never operates unless request signal is activated
+!E [ F FC1=1&Request1=false&R3=1 ]
+
+!E [ F FC3=1&Request3=false&R2=1 ]
+
+!E [ F FC2=1&Request2=false&R1=1 ]
+
+// Backup relay wont trip before operation of main relay
+filter(forall, FC1=1=>P>=1 [ !(R3=1) U (R1=1|R1=2) ])
+
