@@ -1,0 +1,25 @@
+// Successful signal sending during relay operation
+filter(forall, ((FC1=1|FC2=1)&R1=2)=>P>=1 [ F Request1=true ])
+
+filter(forall, R1=1=>P>=1 [ Lock1=true ])
+
+filter(forall, R1=1=>P>=1 [ F Reset1=true ])
+
+// Relay won’t trip if there is no fault
+!E [ F (FC1=0&FC2=0)&R1=1 ]
+
+// Relay won’t trip if there is no fault
+filter(forall, FC1=0&FC2=0=>P>=1 [ F !(R1=1) ])
+
+filter(forall, R1=3&Reset2=false=>P>=1 [ R1=3 ])
+
+// relay in lockout will remain in lockout unless released by reset command
+filter(forall, R1=3=>P>=1 [ R1=3 U Reset2=true ])
+
+filter(forall, R1=4=>P>=1 [ R1=4 U Request2=true ])
+
+filter(forall, R1=4&Request2=false=>P>=1 [ !R1=1|!R1=2 ])
+
+// Considering component failure probability to be zero a fault is always cleared by the relay
+filter(forall, (FC1=1|FC2=1)=>P>=1 [ F R1=1 ])
+
