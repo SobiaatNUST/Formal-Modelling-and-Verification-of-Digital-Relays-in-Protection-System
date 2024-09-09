@@ -1,0 +1,29 @@
+// Backup relay wont trip before operation of main relay
+filter(forall, FC1=1=>P>=1 [ !(R3=1) U (R1=1|R1=2) ])
+
+filter(forall, FC2=1=>P>=1 [ !(R1=1) U (R2=1|R2=2) ])
+
+filter(forall, FC3=1=>P>=1 [ !(R2=1) U (R3=1|R3=2) ])
+
+// whenever a fault occurs and ackup relay is in standby mode it will remain in the standby until CU commands it to operate
+filter(forall, (FC1=1&R3=6)=>P>=1 [ F (R3=6 W CU=2) ])
+
+filter(forall, (FC2=1&R1=6)=>P>=1 [ F (R1=6 W CU=2) ])
+
+filter(forall, (FC3=1&R2=6)=>P>=1 [ F (R2=6 W CU=2) ])
+
+// Keeping primary relay failure rate non zero and backup relay if it fails to clear the fault the backup relay will always clear the fault
+filter(forall, (FC1=1&R1=2)=>P>=1 [ F R3=1&Break3=true&FC1=2 ])
+
+// primary relay failure is non zero and backup relay failure rate is 0 and channel failure rate is also 0
+filter(forall, (FC2=1&R2=2)=>P>=1 [ F R1=1&Break1=true&FC2=2 ])
+
+filter(forall, (FC3=1&R3=2)=>P>=1 [ F (R2=1&Break2=true&FC3=2) ])
+
+A [ G F (CU=Safe_state) ]
+
+A [ G (CU!=Unsafe_state) ]
+
+// Whenever any of the faults represented by FC1, FC2, or FC3 occurs in the system, it is guaranteed (P>=1) that the system will eventually (F) end up in a safe state
+filter(forall, (FC1=1|FC2=1|FC3=1)=>P>=1 [ F CU=Safe_state ])
+
