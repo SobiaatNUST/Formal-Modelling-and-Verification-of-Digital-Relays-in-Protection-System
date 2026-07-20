@@ -5,9 +5,9 @@ mdp
 //// st: 11557 tr: 30984 
 
 
-/// For IEEE-3bus system with three DOCRs only
-/// Three lines two gen and each line has one DOCR
-/// Three fault points Primary and backup DOCRs
+/// For IEEE-3bus system with three relays only
+/// Three lines two gen and each line has one relay
+/// Three fault points Primary and backup relays
 /// FC1: main: R1: R3 backup
 /// FC2: main: R2: R1 backup
 /// FC3: main: R3: R2 backup
@@ -209,7 +209,7 @@ module Sup_SV3= Sup_SV1[sv1=sv3,CU1=CU3]endmodule
 
 
 
-module Central_Unit
+module Control_Unit
 
  CU:[0..5] init 0;
 // CU =1 : Activates supervisory  // 2: sends BR to operate  

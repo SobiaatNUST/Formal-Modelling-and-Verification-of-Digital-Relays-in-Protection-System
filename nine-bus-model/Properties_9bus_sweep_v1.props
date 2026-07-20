@@ -1,0 +1,13 @@
+// ============================================================================
+//  Properties_9bus_sweep_v1.props  --  quantitative sweep queries for
+//  ninebus_model_v1.pm.  Only Q_Safe and Q_Unsafe (P2 removed).
+//
+//  Both queries use plain Pmin/Pmax syntax, identical for PRISM and STORM, so
+//  a single property file serves both engines.
+//  (Safe_state / Unsafe_state are defined in the model.)
+// ============================================================================
+
+// Q_Safe   : minimum (worst-case adversary) probability of ever reaching Safe
+// Q_Unsafe : maximum (worst-case adversary) probability of ever reaching Unsafe
+"Q_Safe"   : Pmin=? [ F CU=Safe_state ];
+"Q_Unsafe" : Pmax=? [ F CU=Unsafe_state ];

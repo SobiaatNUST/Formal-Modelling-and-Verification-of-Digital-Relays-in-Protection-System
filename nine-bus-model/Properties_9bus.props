@@ -1,0 +1,171 @@
+// =============================================================================
+// Property set for ninebus_model.pm  (IEEE 9-bus, 6 fault points, 12 relays)
+//
+// Extends three bus network properties to the two-sided 9-bus topology.
+// Every fault FCx is protected from BOTH line ends, so each of the 3-bus
+// per-fault coordination properties becomes TWO instances (side A and side B):
+//
+//   Relationship  Fault  Primary  Backup   (breaker of primary / backup)
+//   FC1A          FC1    R1       R11      cb1  / cb11
+//   FC1B          FC1    R2       R4       cb2  / cb4
+//   FC2A          FC2    R3       R1       cb3  / cb1
+//   FC2B          FC2    R4       R6       cb4  / cb6
+//   FC3A          FC3    R5       R3       cb5  / cb3
+//   FC3B          FC3    R6       R8       cb6  / cb8
+//   FC4A          FC4    R7       R5       cb7  / cb5
+//   FC4B          FC4    R8       R10      cb8  / cb10
+//   FC5A          FC5    R9       R7       cb9  / cb7
+//   FC5B          FC5    R10      R12      cb10 / cb12
+//   FC6A          FC6    R11      R9       cb11 / cb9
+//   FC6B          FC6    R12      R2       cb12 / cb2
+//
+// PARAMETERIZATION (applied by run_ninebus.sh via -const):
+//   P1                : all relay-failure and COM = 0            (zero-failure)
+//   P2-P7, P9, Q_*    : all relay-failure and COM = 0.1          (base)
+//   P8_<rel>          : ONLY that relationship's PRIMARY relay has nonzero
+//                       failure (0.1); every other relay = 0 and COM = 0, so
+//                       the fault can reach FCx=2 with probability 1 through
+//                       the backup on the failing side and the (reliable)
+//                       other side. Mirrors the 3-bus P8 requirement.
+//
+// Syntax note (kept from the 3-bus file): every temporal sub-formula (F/G)
+// used as the consequent of "=>" is wrapped in an extra pair of parentheses,
+// which PRISM's parser requires.
+// =============================================================================
+
+
+// ---- P1 (Liveness): after a fault the system reaches AND stays Safe --------
+"P1" : filter(forall, P>=1 [ G ( "Fault" => (F (G (CU=Safe_state))) ) ]);
+
+// ---- P2 (Liveness): after a fault the system reaches a terminal verdict -----
+"P2" : filter(forall, P>=1 [ G ( "Fault" => (F (CU=Safe_state | CU=Unsafe_state)) ) ]);
+
+
+// ---- P3 (Coordination/Safety): an operating relay always asserts its Lock ---
+"P3_R1"  : filter(forall, P>=1 [ G ( "R1_operation"  => Lock1=true ) ]);
+"P3_R2"  : filter(forall, P>=1 [ G ( "R2_operation"  => Lock2=true ) ]);
+"P3_R3"  : filter(forall, P>=1 [ G ( "R3_operation"  => Lock3=true ) ]);
+"P3_R4"  : filter(forall, P>=1 [ G ( "R4_operation"  => Lock4=true ) ]);
+"P3_R5"  : filter(forall, P>=1 [ G ( "R5_operation"  => Lock5=true ) ]);
+"P3_R6"  : filter(forall, P>=1 [ G ( "R6_operation"  => Lock6=true ) ]);
+"P3_R7"  : filter(forall, P>=1 [ G ( "R7_operation"  => Lock7=true ) ]);
+"P3_R8"  : filter(forall, P>=1 [ G ( "R8_operation"  => Lock8=true ) ]);
+"P3_R9"  : filter(forall, P>=1 [ G ( "R9_operation"  => Lock9=true ) ]);
+"P3_R10" : filter(forall, P>=1 [ G ( "R10_operation" => Lock10=true ) ]);
+"P3_R11" : filter(forall, P>=1 [ G ( "R11_operation" => Lock11=true ) ]);
+"P3_R12" : filter(forall, P>=1 [ G ( "R12_operation" => Lock12=true ) ]);
+
+
+// ---- P4 (Coordination/Safety): once a primary clears its end, that end's ----
+//      backup never trips.  ( primary tripped & breaker opened => backup idle )
+"P4_FC1A" : filter(forall, P>=1 [ G ( (FC1=1 & R1=1  & Break1=true  & cb1=1)  => (G (!(R11=1))) ) ]);
+"P4_FC1B" : filter(forall, P>=1 [ G ( (FC1=1 & R2=1  & Break2=true  & cb2=1)  => (G (!(R4=1)))  ) ]);
+"P4_FC2A" : filter(forall, P>=1 [ G ( (FC2=1 & R3=1  & Break3=true  & cb3=1)  => (G (!(R1=1)))  ) ]);
+"P4_FC2B" : filter(forall, P>=1 [ G ( (FC2=1 & R4=1  & Break4=true  & cb4=1)  => (G (!(R6=1)))  ) ]);
+"P4_FC3A" : filter(forall, P>=1 [ G ( (FC3=1 & R5=1  & Break5=true  & cb5=1)  => (G (!(R3=1)))  ) ]);
+"P4_FC3B" : filter(forall, P>=1 [ G ( (FC3=1 & R6=1  & Break6=true  & cb6=1)  => (G (!(R8=1)))  ) ]);
+"P4_FC4A" : filter(forall, P>=1 [ G ( (FC4=1 & R7=1  & Break7=true  & cb7=1)  => (G (!(R5=1)))  ) ]);
+"P4_FC4B" : filter(forall, P>=1 [ G ( (FC4=1 & R8=1  & Break8=true  & cb8=1)  => (G (!(R10=1))) ) ]);
+"P4_FC5A" : filter(forall, P>=1 [ G ( (FC5=1 & R9=1  & Break9=true  & cb9=1)  => (G (!(R7=1)))  ) ]);
+"P4_FC5B" : filter(forall, P>=1 [ G ( (FC5=1 & R10=1 & Break10=true & cb10=1) => (G (!(R12=1))) ) ]);
+"P4_FC6A" : filter(forall, P>=1 [ G ( (FC6=1 & R11=1 & Break11=true & cb11=1) => (G (!(R9=1)))  ) ]);
+"P4_FC6B" : filter(forall, P>=1 [ G ( (FC6=1 & R12=1 & Break12=true & cb12=1) => (G (!(R2=1)))  ) ]);
+
+
+// ---- P5 (Coordination): a backup never trips before its primary operates ----
+"P5_FC1A" : filter(forall, FC1=1 => (P>=1 [ !(R11=1) U (R1=1  | R1=2)  ]));
+"P5_FC1B" : filter(forall, FC1=1 => (P>=1 [ !(R4=1)  U (R2=1  | R2=2)  ]));
+"P5_FC2A" : filter(forall, FC2=1 => (P>=1 [ !(R1=1)  U (R3=1  | R3=2)  ]));
+"P5_FC2B" : filter(forall, FC2=1 => (P>=1 [ !(R6=1)  U (R4=1  | R4=2)  ]));
+"P5_FC3A" : filter(forall, FC3=1 => (P>=1 [ !(R3=1)  U (R5=1  | R5=2)  ]));
+"P5_FC3B" : filter(forall, FC3=1 => (P>=1 [ !(R8=1)  U (R6=1  | R6=2)  ]));
+"P5_FC4A" : filter(forall, FC4=1 => (P>=1 [ !(R5=1)  U (R7=1  | R7=2)  ]));
+"P5_FC4B" : filter(forall, FC4=1 => (P>=1 [ !(R10=1) U (R8=1  | R8=2)  ]));
+"P5_FC5A" : filter(forall, FC5=1 => (P>=1 [ !(R7=1)  U (R9=1  | R9=2)  ]));
+"P5_FC5B" : filter(forall, FC5=1 => (P>=1 [ !(R12=1) U (R10=1 | R10=2) ]));
+"P5_FC6A" : filter(forall, FC6=1 => (P>=1 [ !(R9=1)  U (R11=1 | R11=2) ]));
+"P5_FC6B" : filter(forall, FC6=1 => (P>=1 [ !(R2=1)  U (R12=1 | R12=2) ]));
+
+
+// ---- P6 (Coordination/Safety): a backup operates only when its primary's ----
+//      Request signal is active.
+"P6_FC1A" : filter(forall, P>=1 [ G ( (FC1=1 & Request1=false)  => !(R11=1) ) ]);
+"P6_FC1B" : filter(forall, P>=1 [ G ( (FC1=1 & Request2=false)  => !(R4=1)  ) ]);
+"P6_FC2A" : filter(forall, P>=1 [ G ( (FC2=1 & Request3=false)  => !(R1=1)  ) ]);
+"P6_FC2B" : filter(forall, P>=1 [ G ( (FC2=1 & Request4=false)  => !(R6=1)  ) ]);
+"P6_FC3A" : filter(forall, P>=1 [ G ( (FC3=1 & Request5=false)  => !(R3=1)  ) ]);
+"P6_FC3B" : filter(forall, P>=1 [ G ( (FC3=1 & Request6=false)  => !(R8=1)  ) ]);
+"P6_FC4A" : filter(forall, P>=1 [ G ( (FC4=1 & Request7=false)  => !(R5=1)  ) ]);
+"P6_FC4B" : filter(forall, P>=1 [ G ( (FC4=1 & Request8=false)  => !(R10=1) ) ]);
+"P6_FC5A" : filter(forall, P>=1 [ G ( (FC5=1 & Request9=false)  => !(R7=1)  ) ]);
+"P6_FC5B" : filter(forall, P>=1 [ G ( (FC5=1 & Request10=false) => !(R12=1) ) ]);
+"P6_FC6A" : filter(forall, P>=1 [ G ( (FC6=1 & Request11=false) => !(R9=1)  ) ]);
+"P6_FC6B" : filter(forall, P>=1 [ G ( (FC6=1 & Request12=false) => !(R2=1)  ) ]);
+
+
+// ---- P7 (Coordination/Safety): a standby backup stays in Standby until the --
+//      Control Unit commands it to operate (CU=2).
+"P7_FC1A" : filter(forall, (FC1=1 & R11=6) => (P>=1 [ (R11=6) W (CU=2) ]));
+"P7_FC1B" : filter(forall, (FC1=1 & R4=6)  => (P>=1 [ (R4=6)  W (CU=2) ]));
+"P7_FC2A" : filter(forall, (FC2=1 & R1=6)  => (P>=1 [ (R1=6)  W (CU=2) ]));
+"P7_FC2B" : filter(forall, (FC2=1 & R6=6)  => (P>=1 [ (R6=6)  W (CU=2) ]));
+"P7_FC3A" : filter(forall, (FC3=1 & R3=6)  => (P>=1 [ (R3=6)  W (CU=2) ]));
+"P7_FC3B" : filter(forall, (FC3=1 & R8=6)  => (P>=1 [ (R8=6)  W (CU=2) ]));
+"P7_FC4A" : filter(forall, (FC4=1 & R5=6)  => (P>=1 [ (R5=6)  W (CU=2) ]));
+"P7_FC4B" : filter(forall, (FC4=1 & R10=6) => (P>=1 [ (R10=6) W (CU=2) ]));
+"P7_FC5A" : filter(forall, (FC5=1 & R7=6)  => (P>=1 [ (R7=6)  W (CU=2) ]));
+"P7_FC5B" : filter(forall, (FC5=1 & R12=6) => (P>=1 [ (R12=6) W (CU=2) ]));
+"P7_FC6A" : filter(forall, (FC6=1 & R9=6)  => (P>=1 [ (R9=6)  W (CU=2) ]));
+"P7_FC6B" : filter(forall, (FC6=1 & R2=6)  => (P>=1 [ (R2=6)  W (CU=2) ]));
+
+
+// ---- P8 (Backup Operation/Liveness): if a primary fails, its backup trips, --
+//      opens its breaker, and the fault is cleared (FCx=2).
+//      Run each under its own parameterization (see header / script).
+"P8_FC1A" : filter(forall, (FC1=1 & R1=2)  => (P>=1 [ F (R11=1 & Break11=true & FC1=2) ]));
+"P8_FC1B" : filter(forall, (FC1=1 & R2=2)  => (P>=1 [ F (R4=1  & Break4=true  & FC1=2) ]));
+"P8_FC2A" : filter(forall, (FC2=1 & R3=2)  => (P>=1 [ F (R1=1  & Break1=true  & FC2=2) ]));
+"P8_FC2B" : filter(forall, (FC2=1 & R4=2)  => (P>=1 [ F (R6=1  & Break6=true  & FC2=2) ]));
+"P8_FC3A" : filter(forall, (FC3=1 & R5=2)  => (P>=1 [ F (R3=1  & Break3=true  & FC3=2) ]));
+"P8_FC3B" : filter(forall, (FC3=1 & R6=2)  => (P>=1 [ F (R8=1  & Break8=true  & FC3=2) ]));
+"P8_FC4A" : filter(forall, (FC4=1 & R7=2)  => (P>=1 [ F (R5=1  & Break5=true  & FC4=2) ]));
+"P8_FC4B" : filter(forall, (FC4=1 & R8=2)  => (P>=1 [ F (R10=1 & Break10=true & FC4=2) ]));
+"P8_FC5A" : filter(forall, (FC5=1 & R9=2)  => (P>=1 [ F (R7=1  & Break7=true  & FC5=2) ]));
+"P8_FC5B" : filter(forall, (FC5=1 & R10=2) => (P>=1 [ F (R12=1 & Break12=true & FC5=2) ]));
+"P8_FC6A" : filter(forall, (FC6=1 & R11=2) => (P>=1 [ F (R9=1  & Break9=true  & FC6=2) ]));
+"P8_FC6B" : filter(forall, (FC6=1 & R12=2) => (P>=1 [ F (R2=1  & Break2=true  & FC6=2) ]));
+
+
+// ---- P9 (Optimal Operation/Safety): for a fault at FCx, no NON-involved -----
+//      relay (neither a primary nor a backup of FCx) ever trips.
+"P9_FC1" : filter(forall, FC1=1 => (P>=1 [ G (!(R3=1)&!(R5=1)&!(R6=1)&!(R7=1)&!(R8=1)&!(R9=1)&!(R10=1)&!(R12=1)) ]));
+"P9_FC2" : filter(forall, FC2=1 => (P>=1 [ G (!(R2=1)&!(R5=1)&!(R7=1)&!(R8=1)&!(R9=1)&!(R10=1)&!(R11=1)&!(R12=1)) ]));
+"P9_FC3" : filter(forall, FC3=1 => (P>=1 [ G (!(R1=1)&!(R2=1)&!(R4=1)&!(R7=1)&!(R9=1)&!(R10=1)&!(R11=1)&!(R12=1)) ]));
+"P9_FC4" : filter(forall, FC4=1 => (P>=1 [ G (!(R1=1)&!(R2=1)&!(R3=1)&!(R4=1)&!(R6=1)&!(R9=1)&!(R11=1)&!(R12=1)) ]));
+"P9_FC5" : filter(forall, FC5=1 => (P>=1 [ G (!(R1=1)&!(R2=1)&!(R3=1)&!(R4=1)&!(R5=1)&!(R6=1)&!(R8=1)&!(R11=1)) ]));
+"P9_FC6" : filter(forall, FC6=1 => (P>=1 [ G (!(R1=1)&!(R3=1)&!(R4=1)&!(R5=1)&!(R6=1)&!(R7=1)&!(R8=1)&!(R10=1)) ]));
+
+
+// =============================================================================
+// QUANTITATIVE dependability queries (report point values at the base 0.1
+// parameterization; sweep the swept constant with -const for the figures).
+// Safe-reaching uses Pmin (conservative lower bound over all schedulers);
+// Unsafe-reaching uses Pmax (conservative upper bound).
+// =============================================================================
+
+"Q_Safe"   : Pmin=? [ F CU=Safe_state ];
+"Q_Unsafe" : Pmax=? [F CU=Unsafe_state ];
+
+"Q_Safe_FC1" : Pmin=? [ F (FC1=1 & (F CU=Safe_state)) ];
+"Q_Safe_FC2" : Pmin=? [ F (FC2=1 & (F CU=Safe_state)) ];
+"Q_Safe_FC3" : Pmin=? [ F (FC3=1 & (F CU=Safe_state)) ];
+"Q_Safe_FC4" : Pmin=? [ F (FC4=1 & (F CU=Safe_state)) ];
+"Q_Safe_FC5" : Pmin=? [ F (FC5=1 & (F CU=Safe_state)) ];
+"Q_Safe_FC6" : Pmin=? [ F (FC6=1 & (F CU=Safe_state)) ];
+
+"Q_Unsafe_FC1" : Pmax=? [ F (FC1=1 & (F CU=Unsafe_state)) ];
+"Q_Unsafe_FC2" : Pmax=? [ F (FC2=1 & (F CU=Unsafe_state)) ];
+"Q_Unsafe_FC3" : Pmax=? [ F (FC3=1 & (F CU=Unsafe_state)) ];
+"Q_Unsafe_FC4" : Pmax=? [ F (FC4=1 & (F CU=Unsafe_state)) ];
+"Q_Unsafe_FC5" : Pmax=? [ F (FC5=1 & (F CU=Unsafe_state)) ];
+"Q_Unsafe_FC6" : Pmax=? [ F (FC6=1 & (F CU=Unsafe_state)) ];

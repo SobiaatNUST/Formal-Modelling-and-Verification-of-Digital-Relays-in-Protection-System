@@ -1,0 +1,90 @@
+// =============================================================================
+// Property set for "System Model.pm"
+// Matches the properties in the paper (Table 3 "List of Properties" and
+// Table 4 "Verification Results").
+//
+//
+// Relay roles per fault point (see Table 2 of the paper):
+//   FC1: primary R1, backup R3, non-involved R2
+//   FC2: primary R2, backup R1, non-involved R3
+//   FC3: primary R3, backup R2, non-involved R1
+//
+// Labels used below ("Fault", "R1_operation", "Fault_clr_R1", ...) are defined
+// at the bottom of "System Model.pm".
+//
+// Parameter values for the QUALITATIVE checks P1-P9 (Table 4):
+//   P1    : IED=IEDR2=IEDR3=0, COM=0, WD=WDR2=WDR3=0   (zero-failure assumption)
+//   P2-P7,
+//   P9    : IED=IEDR2=IEDR3=0.1, COM=0.1, WD=WDR2=WDR3=0.1
+//   P8    : primary relay's own IED/WD kept at 0.1 (nonzero, so it can fail);
+//           the BACKUP relay's IED/WD forced to 0 AND communication failure
+//           (COM) forced to 0. COM must also be 0, not just the backup's own
+//           relay-failure probability: the backup's breaker-communication
+//           channel (cb) is governed by the same COM constant, and if COM is
+//           left at 0.1, a rare breaker-channel failure on the BACKUP's side
+//           can push the Control Unit to Unsafe_state.
+// See README.md for the exact per-property parameter table.
+// =============================================================================
+
+// ---- P1 (Liveness): after a fault the system reaches AND stays Safe ----
+filter(forall, P>=1 [ G ( "Fault" => (F (G (CU=Safe_state))) ) ])
+
+// ---- P2 (Liveness): after a fault the system reaches a terminal verdict ----
+filter(forall, P>=1 [ G ( "Fault" => (F (CU=Safe_state | CU=Unsafe_state)) ) ])
+
+// ---- P3 (Coordination/Safety): operating relay always asserts its Lock ----
+filter(forall, P>=1 [ G ( "R1_operation" => Lock1=true ) ])
+filter(forall, P>=1 [ G ( "R2_operation" => Lock2=true ) ])
+filter(forall, P>=1 [ G ( "R3_operation" => Lock3=true ) ])
+
+// ---- P4 (Coordination/Safety): backup never operates after primary clears ----
+filter(forall, P>=1 [ G ( "Fault_clr_R1" => (G (!(R3=1))) ) ])
+filter(forall, P>=1 [ G ( "Fault_clr_R2" => (G (!(R1=1))) ) ])
+filter(forall, P>=1 [ G ( "Fault_clr_R3" => (G (!(R2=1))) ) ])
+
+// ---- P5 (Coordination): backup never trips before the primary operates ----
+filter(forall, FC1=1 => (P>=1 [ !(R3=1) U (R1=1 | R1=2) ]))
+filter(forall, FC2=1 => (P>=1 [ !(R1=1) U (R2=1 | R2=2) ]))
+filter(forall, FC3=1 => (P>=1 [ !(R2=1) U (R3=1 | R3=2) ]))
+
+// ---- P6 (Coordination/Safety): backup operates only when Request is active ----
+filter(forall, P>=1 [ G ( (FC1=1 & Request1=false) => !(R3=1) ) ])
+filter(forall, P>=1 [ G ( (FC2=1 & Request2=false) => !(R1=1) ) ])
+filter(forall, P>=1 [ G ( (FC3=1 & Request3=false) => !(R2=1) ) ])
+
+// ---- P7 (Coordination/Safety): standby backup stays in Standby until CU operate ----
+
+filter(forall, (FC1=1 & R3=6) => (P>=1 [ (R3=6) W (CU=2) ]))
+filter(forall, (FC2=1 & R1=6) => (P>=1 [ (R1=6) W (CU=2) ]))
+filter(forall, (FC3=1 & R2=6) => (P>=1 [ (R2=6) W (CU=2) ]))
+
+// ---- P8 (Backup Operation/Liveness): if primary fails, backup clears ----
+
+filter(forall, (FC1=1 & R1=2) => (P>=1 [ F (R3=1 & Break3=true & FC1=2) ]))
+filter(forall, (FC2=1 & R2=2) => (P>=1 [ F (R1=1 & Break1=true & FC2=2) ]))
+filter(forall, (FC3=1 & R3=2) => (P>=1 [ F (R2=1 & Break2=true & FC3=2) ]))
+
+// ---- P9 (Optimal Operation/Safety): non-involved relay never trips ----
+filter(forall, FC1=1 => (P>=1 [ G (!(R2=1)) ]))
+filter(forall, FC2=1 => (P>=1 [ G (!(R3=1)) ]))
+filter(forall, FC3=1 => (P>=1 [ G (!(R1=1)) ]))
+
+// =============================================================================
+// QUANTITATIVE queries used for the dependability sweeps (paper figures).
+// Run these with PRISM's experiment feature; see README.md for the swept
+// constant, its range (0.0 : 0.1 : 1.0), and the fixed values per figure.
+// =============================================================================
+
+// Probability of reaching Safe / Unsafe (aggregate over all fault points):
+Pmin=? [ F CU=Safe_state ]
+Pmax=? [ F CU=Unsafe_state ]
+
+// Per-fault-point probability of reaching Safe:
+Pmin=? [ F (FC1=1 & (F CU=Safe_state)) ]
+Pmin=? [ F (FC2=1 & (F CU=Safe_state)) ]
+Pmin=? [ F (FC3=1 & (F CU=Safe_state)) ]
+
+// Per-fault-point probability of reaching Unsafe:
+Pmax=? [ F (FC1=1 & (F CU=Unsafe_state)) ]
+Pmax=? [ F (FC2=1 & (F CU=Unsafe_state)) ]
+Pmax=? [ F (FC3=1 & (F CU=Unsafe_state)) ]
