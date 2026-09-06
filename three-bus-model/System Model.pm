@@ -252,7 +252,7 @@ label "R3_operation" = (FC3=1|FC1=1)& (WD3=2)&(R3=1|R3=2);
 label "R1_fail" = (FC1=1)& R1=2;
 label "Fault_clr_R1" = FC1=1 & R1=1 & Break1=true & cb1=1;
 label "Fault_clr_R2" = FC2=1 & R2=1 & Break2=true & cb2=1;
-label "Fault_clr_R3" = FC3=1 & R3=1 & Break2=true & cb3=1;
+label "Fault_clr_R3" = FC3=1 & R3=1 & Break3=true & cb3=1;
 label "Sup_cond_R1" = sup_R1_cond1 | sup_R1_cond2;
 label "Sup_cond_R2" = sup_R2_cond1 | sup_R2_cond2;
 label "Sup_cond_R3" = sup_R3_cond1 | sup_R3_cond2;
